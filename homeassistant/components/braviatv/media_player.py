@@ -155,12 +155,12 @@ class BraviaTVDevice(MediaPlayerEntity):
         if self._state_lock.locked():
             return
 
-        if self._state == STATE_OFF:
-            self._need_refresh = True
-
         power_status = await self.hass.async_add_executor_job(
             self._braviarc.get_power_status
         )
+
+        temp_state = STATE_OFF
+
         if power_status == "active":
             if self._need_refresh:
                 try:
@@ -181,8 +181,10 @@ class BraviaTVDevice(MediaPlayerEntity):
                 and await self._async_refresh_channels()
             ):
                 await self._async_refresh_playing_info()
-                return
-        self._state = STATE_OFF
+                temp_state = STATE_ON
+        elif power_status == "off":
+            self._need_refresh = True
+        self._state = temp_state
 
     def _get_source(self):
         """Return the name of the source."""
